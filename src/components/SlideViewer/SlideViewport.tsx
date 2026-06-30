@@ -20,6 +20,7 @@ export default function SlideViewport(): React.ReactElement {
       {/* 16:9 slide container */}
       <div
         ref={slideContainerRef}
+        data-slide-container
         className="relative shadow-2xl"
         style={{
           aspectRatio: '16 / 9',

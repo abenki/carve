@@ -12,8 +12,14 @@ function elementToHtml(el: SlideElement): string {
   }
 
   if (el.type === 'text') {
-    const style: Record<string, string> = {
+    const containerStyle: Record<string, string> = {
       ...base,
+      display: 'flex',
+      alignItems: 'center',
+      overflow: 'hidden',
+    }
+    const innerStyle: Record<string, string> = {
+      width: '100%',
       fontFamily: el.fontFamily ?? 'Inter, sans-serif',
       fontSize: `${el.fontSize ?? 16}px`,
       fontWeight: el.fontWeight ?? '400',
@@ -23,11 +29,8 @@ function elementToHtml(el: SlideElement): string {
       lineHeight: String(el.lineHeight ?? 1.4),
       whiteSpace: 'pre-wrap',
       wordBreak: 'break-word',
-      overflow: 'hidden',
-      display: 'flex',
-      alignItems: 'center',
     }
-    return `<div data-id="${el.id}" style="${toInlineStyle(style)}">${escapeHtml(el.content ?? '')}</div>`
+    return `<div data-id="${el.id}" style="${toInlineStyle(containerStyle)}"><span style="${toInlineStyle(innerStyle)}">${escapeHtml(el.content ?? '')}</span></div>`
   }
 
   if (el.type === 'image') {

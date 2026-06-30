@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react'
-import { Canvas, Rect, Ellipse, Path, FabricObject } from 'fabric'
+import { Canvas, Rect, Ellipse, Line, Triangle, Group, PencilBrush, type FabricObject } from 'fabric'
 import type { DrawTool } from '@/store/ui'
 
 interface Props {
@@ -9,20 +9,22 @@ interface Props {
   onSnapshot: (base64Png: string) => void
 }
 
+const STROKE = '#F97316'
+const STROKE_WIDTH = 2
+
 export default function AnnotationCanvas({ active, tool, containerRef, onSnapshot }: Props): React.ReactElement {
   const canvasElRef = useRef<HTMLCanvasElement>(null)
   const fabricRef = useRef<Canvas | null>(null)
+  const wrapperRef = useRef<HTMLElement | null>(null)
   const isDrawingRef = useRef(false)
   const startPointRef = useRef({ x: 0, y: 0 })
   const activeShapeRef = useRef<FabricObject | null>(null)
 
   // Initialize Fabric canvas
   useEffect(() => {
-    if (!canvasElRef.current) return
-    const container = containerRef.current
-    if (!container) return
+    if (!canvasElRef.current || !containerRef.current) return
+    const { width, height } = containerRef.current.getBoundingClientRect()
 
-    const { width, height } = container.getBoundingClientRect()
     const canvas = new Canvas(canvasElRef.current, {
       width,
       height,
@@ -31,16 +33,34 @@ export default function AnnotationCanvas({ active, tool, containerRef, onSnapsho
     })
     fabricRef.current = canvas
 
+    // Fabric.js wraps the canvas element in a .canvas-container div with
+    // position:relative. Force it to overlay the slide absolutely and store
+    // a ref so we can toggle pointer-events reactively.
+    const wrapper = canvas.getElement().parentElement
+    if (wrapper) {
+      Object.assign(wrapper.style, {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        opacity: '0',
+      })
+      wrapperRef.current = wrapper
+    }
+
     return () => {
       canvas.dispose()
       fabricRef.current = null
+      wrapperRef.current = null
     }
   }, [])
 
-  // Resize canvas when container resizes
+  // Resize when container resizes
   useEffect(() => {
     const container = containerRef.current
-    if (!container || !fabricRef.current) return
+    if (!container) return
     const obs = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
       fabricRef.current?.setDimensions({ width, height })
@@ -49,7 +69,17 @@ export default function AnnotationCanvas({ active, tool, containerRef, onSnapsho
     return () => obs.disconnect()
   }, [])
 
-  // Clear canvas when deactivated
+  // Toggle interactivity — must update the Fabric wrapper (which contains the
+  // upper-canvas event layer) not just the original canvas element.
+  useEffect(() => {
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+    wrapper.style.pointerEvents = active ? 'auto' : 'none'
+    wrapper.style.opacity = active ? '1' : '0'
+    wrapper.style.cursor = active ? 'crosshair' : 'default'
+  }, [active])
+
+  // Clear canvas when annotation mode is deactivated
   useEffect(() => {
     if (!active && fabricRef.current) {
       fabricRef.current.clear()
@@ -57,10 +87,9 @@ export default function AnnotationCanvas({ active, tool, containerRef, onSnapsho
     }
   }, [active])
 
-  // Snapshot on every object added/modified
   const takeSnapshot = useCallback(() => {
     const canvas = fabricRef.current
-    if (!canvas || canvas.getObjects().length === 0) return
+    if (!canvas || canvas.getObjects().length === 0) { onSnapshot(''); return }
     onSnapshot(canvas.toDataURL({ format: 'png', multiplier: 2 }))
   }, [onSnapshot])
 
@@ -72,60 +101,90 @@ export default function AnnotationCanvas({ active, tool, containerRef, onSnapsho
     canvas.isDrawingMode = false
 
     if (tool === 'pen') {
+      const brush = new PencilBrush(canvas)
+      brush.color = STROKE
+      brush.width = STROKE_WIDTH
+      canvas.freeDrawingBrush = brush
       canvas.isDrawingMode = true
-      if (canvas.freeDrawingBrush) {
-        canvas.freeDrawingBrush.color = '#F97316'
-        canvas.freeDrawingBrush.width = 2
-      }
       const onPathCreated = () => takeSnapshot()
       canvas.on('path:created', onPathCreated)
-      return () => { canvas.off('path:created', onPathCreated) }
+      return () => {
+        canvas.off('path:created', onPathCreated)
+        canvas.isDrawingMode = false
+      }
     }
 
-    // Shape drawing (rect, ellipse, arrow)
     const onMouseDown = (opt: { e: MouseEvent }) => {
       if (!active) return
       const pointer = canvas.getPointer(opt.e)
       startPointRef.current = { x: pointer.x, y: pointer.y }
       isDrawingRef.current = true
+      activeShapeRef.current = null
 
-      const commonStyle = { stroke: '#F97316', strokeWidth: 2, fill: 'transparent', selectable: false }
+      const common = { stroke: STROKE, strokeWidth: STROKE_WIDTH, fill: 'transparent', selectable: false }
 
       if (tool === 'rect') {
-        const rect = new Rect({ left: pointer.x, top: pointer.y, width: 0, height: 0, ...commonStyle })
-        canvas.add(rect)
-        activeShapeRef.current = rect
+        const shape = new Rect({ left: pointer.x, top: pointer.y, width: 0, height: 0, ...common })
+        canvas.add(shape)
+        activeShapeRef.current = shape
       } else if (tool === 'ellipse') {
-        const ellipse = new Ellipse({ left: pointer.x, top: pointer.y, rx: 0, ry: 0, ...commonStyle })
-        canvas.add(ellipse)
-        activeShapeRef.current = ellipse
+        const shape = new Ellipse({ left: pointer.x, top: pointer.y, rx: 0, ry: 0, ...common })
+        canvas.add(shape)
+        activeShapeRef.current = shape
       }
     }
 
     const onMouseMove = (opt: { e: MouseEvent }) => {
-      if (!isDrawingRef.current || !activeShapeRef.current) return
+      if (!isDrawingRef.current) return
       const pointer = canvas.getPointer(opt.e)
       const { x: ox, y: oy } = startPointRef.current
-      const w = Math.abs(pointer.x - ox)
-      const h = Math.abs(pointer.y - oy)
 
-      if (tool === 'rect') {
+      if (tool === 'rect' && activeShapeRef.current) {
         const rect = activeShapeRef.current as Rect
         rect.set({
           left: Math.min(pointer.x, ox),
           top: Math.min(pointer.y, oy),
-          width: w,
-          height: h,
+          width: Math.abs(pointer.x - ox),
+          height: Math.abs(pointer.y - oy),
         })
-      } else if (tool === 'ellipse') {
+      } else if (tool === 'ellipse' && activeShapeRef.current) {
         const ellipse = activeShapeRef.current as Ellipse
         ellipse.set({
           left: Math.min(pointer.x, ox),
           top: Math.min(pointer.y, oy),
-          rx: w / 2,
-          ry: h / 2,
+          rx: Math.abs(pointer.x - ox) / 2,
+          ry: Math.abs(pointer.y - oy) / 2,
         })
+      } else if (tool === 'arrow') {
+        if (activeShapeRef.current) canvas.remove(activeShapeRef.current)
+
+        const dx = pointer.x - ox
+        const dy = pointer.y - oy
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI)
+
+        const shaft = new Line([ox, oy, pointer.x, pointer.y], {
+          stroke: STROKE,
+          strokeWidth: STROKE_WIDTH,
+          selectable: false,
+        })
+
+        const head = new Triangle({
+          width: 12,
+          height: 14,
+          fill: STROKE,
+          left: pointer.x,
+          top: pointer.y,
+          angle: angle + 90,
+          originX: 'center',
+          originY: 'center',
+          selectable: false,
+        })
+
+        const group = new Group([shaft, head], { selectable: false })
+        canvas.add(group)
+        activeShapeRef.current = group
       }
+
       canvas.renderAll()
     }
 
@@ -147,14 +206,6 @@ export default function AnnotationCanvas({ active, tool, containerRef, onSnapsho
   }, [active, tool, takeSnapshot])
 
   return (
-    <canvas
-      ref={canvasElRef}
-      className="absolute inset-0"
-      style={{
-        pointerEvents: active ? 'auto' : 'none',
-        opacity: active ? 1 : 0,
-        cursor: active ? 'crosshair' : 'default',
-      }}
-    />
+    <canvas ref={canvasElRef} />
   )
 }

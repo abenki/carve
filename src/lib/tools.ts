@@ -15,7 +15,6 @@ interface SlideStore {
 
 export function executeToolCalls(toolCalls: FunctionCall[], store: SlideStore): void {
   for (const call of toolCalls) {
-    console.log('[Tool]', call.name, JSON.stringify(call.args, null, 2))
     const args = call.args as Record<string, unknown>
 
     switch (call.name) {

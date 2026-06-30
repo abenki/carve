@@ -240,7 +240,5 @@ export async function sendToGemini(
 
   const toolCalls = response.functionCalls() ?? []
 
-  console.log('[Gemini] text:', JSON.stringify(text), '| toolCalls:', toolCalls.length, toolCalls.map(c => c.name))
-
   return { text, toolCalls }
 }

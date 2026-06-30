@@ -14,7 +14,27 @@ export default function MessageInput(): React.ReactElement {
     const msg = value.trim()
     if (!msg || isAiThinking) return
 
-    const image = pendingAnnotation ?? undefined
+    let image: string | undefined
+
+    // Capture the full slide + annotation overlay via Electron screenshot
+    if (pendingAnnotation) {
+      const container = document.querySelector('[data-slide-container]')
+      if (container) {
+        const rect = container.getBoundingClientRect()
+        try {
+          image = await window.api.captureSlide({
+            x: Math.round(rect.left),
+            y: Math.round(rect.top),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          })
+        } catch (err) {
+          console.error('Screenshot capture failed:', err)
+          // Fall back to canvas-only annotation
+          image = pendingAnnotation
+        }
+      }
+    }
 
     setValue('')
     setPendingAnnotation(null)
@@ -30,7 +50,6 @@ export default function MessageInput(): React.ReactElement {
     }
   }
 
-  // Auto-resize textarea
   function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>): void {
     setValue(e.target.value)
     const ta = textareaRef.current
@@ -42,7 +61,7 @@ export default function MessageInput(): React.ReactElement {
 
   return (
     <div className="border-t border-app-border p-3 flex flex-col gap-2">
-      {/* Annotation preview */}
+      {/* Annotation preview — canvas-only marks shown as context for the user */}
       {pendingAnnotation && (
         <div className="relative">
           <img
@@ -74,7 +93,7 @@ export default function MessageInput(): React.ReactElement {
           onKeyDown={handleKeyDown}
           placeholder="Describe a change…"
           rows={1}
-          className="flex-1 bg-transparent resize-none px-3 py-2 text-sm text-txt-primary placeholder:text-txt-muted disabled:opacity-40"
+          className="flex-1 bg-transparent resize-none px-3 py-2 text-sm text-txt-primary placeholder:text-txt-muted"
           style={{ lineHeight: '1.5', minHeight: '36px', maxHeight: '128px', overflowY: 'auto' }}
         />
         <button
