@@ -12,7 +12,7 @@ interface UIState {
   setDrawMode: (enabled: boolean) => void
   setActiveTool: (tool: DrawTool) => void
 
-  pendingAnnotation: string | null  // base64 PNG of annotation snapshot
+  pendingAnnotation: string | null
   setPendingAnnotation: (img: string | null) => void
 
   messages: ChatMessage[]
@@ -21,6 +21,13 @@ interface UIState {
 
   isAiThinking: boolean
   setIsAiThinking: (thinking: boolean) => void
+
+  currentFilePath: string | null
+  setCurrentFilePath: (path: string | null) => void
+
+  toastMessage: string | null
+  showToast: (msg: string) => void
+  dismissToast: () => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -40,5 +47,12 @@ export const useUIStore = create<UIState>((set) => ({
   clearMessages: () => set({ messages: [] }),
 
   isAiThinking: false,
-  setIsAiThinking: (thinking) => set({ isAiThinking: thinking })
+  setIsAiThinking: (thinking) => set({ isAiThinking: thinking }),
+
+  currentFilePath: null,
+  setCurrentFilePath: (path) => set({ currentFilePath: path }),
+
+  toastMessage: null,
+  showToast: (msg) => set({ toastMessage: msg }),
+  dismissToast: () => set({ toastMessage: null }),
 }))

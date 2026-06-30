@@ -1,14 +1,25 @@
-import type { AppSettings } from './index'
+import type { AppSettings, Project } from './index'
+
+interface FileResult {
+  canceled: boolean
+  filePath?: string
+}
+
+interface OpenResult extends FileResult {
+  project?: Project
+}
 
 export interface ElectronAPI {
-  openProject: () => Promise<unknown>
-  saveProject: (data: unknown) => Promise<void>
-  saveProjectAs: (data: unknown) => Promise<void>
+  openProject: () => Promise<OpenResult>
+  saveProject: (data: unknown, filePath: string) => Promise<FileResult>
+  saveProjectAs: (data: unknown) => Promise<FileResult>
   getRecentProjects: () => Promise<{ name: string; path: string; updatedAt: string }[]>
-  newProject: () => Promise<unknown>
-  exportHtml: (html: string, name: string) => Promise<void>
-  exportPdf: (html: string, name: string) => Promise<void>
+
+  exportHtml: (html: string, name: string) => Promise<FileResult>
+  exportPdf: (html: string, name: string) => Promise<FileResult>
+
   captureSlide: (rect: { x: number; y: number; width: number; height: number }) => Promise<string>
+
   getSettings: () => Promise<AppSettings>
   saveSettings: (settings: AppSettings) => Promise<void>
 }

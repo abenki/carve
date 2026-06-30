@@ -3,7 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('api', {
   // File operations
   openProject: () => ipcRenderer.invoke('file:open'),
-  saveProject: (data: unknown) => ipcRenderer.invoke('file:save', data),
+  saveProject: (data: unknown, filePath: string) => ipcRenderer.invoke('file:save', data, filePath),
   saveProjectAs: (data: unknown) => ipcRenderer.invoke('file:saveAs', data),
   getRecentProjects: () => ipcRenderer.invoke('file:recent'),
   newProject: () => ipcRenderer.invoke('file:new'),

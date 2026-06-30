@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Undo2, Redo2, Download, Settings } from 'lucide-react'
+import { Undo2, Redo2, FileDown, FolderOpen, Save, Settings } from 'lucide-react'
 import { useSlidesStore } from '@/store/slides'
+import { useFileActions } from '@/hooks/useFileActions'
 
 interface Props {
   onSettingsOpen: () => void
@@ -8,6 +9,7 @@ interface Props {
 
 export default function Toolbar({ onSettingsOpen }: Props): React.ReactElement {
   const { project, updateProjectName, undo, redo, undoStack, redoStack } = useSlidesStore()
+  const { save, open, exportHtml } = useFileActions()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(project.name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -67,10 +69,19 @@ export default function Toolbar({ onSettingsOpen }: Props): React.ReactElement {
 
         <div className="w-px h-4 bg-app-border2 mx-1" />
 
-        <ToolbarButton title="Export">
-          <Download size={14} />
+        <ToolbarButton onClick={open} title="Open project (⌘O)">
+          <FolderOpen size={14} />
         </ToolbarButton>
-        <ToolbarButton onClick={onSettingsOpen} title="Settings">
+        <ToolbarButton onClick={save} title="Save project (⌘S)">
+          <Save size={14} />
+        </ToolbarButton>
+        <ToolbarButton onClick={exportHtml} title="Export as HTML">
+          <FileDown size={14} />
+        </ToolbarButton>
+
+        <div className="w-px h-4 bg-app-border2 mx-1" />
+
+        <ToolbarButton onClick={onSettingsOpen} title="Settings (⌘,)">
           <Settings size={14} />
         </ToolbarButton>
       </div>

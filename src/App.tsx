@@ -6,31 +6,34 @@ import ChatPanel from './components/Chat/ChatPanel'
 import Settings from './components/Settings'
 import Toast from './components/Toast'
 import { useSlidesStore } from './store/slides'
+import { useUIStore } from './store/ui'
 import { useSettingsStore } from './store/settings'
-import { useToast } from './hooks/useToast'
+import { useFileActions } from './hooks/useFileActions'
 
 export default function App(): React.ReactElement {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { undo, redo } = useSlidesStore()
+  const { toastMessage, showToast, dismissToast } = useUIStore()
   const { loadFromElectron } = useSettingsStore()
-  const { message: toastMessage, show: showToast, dismiss: dismissToast } = useToast()
+  const { save, saveAs, open } = useFileActions()
 
-  // Load settings from Electron on mount
   useEffect(() => {
     loadFromElectron()
   }, [])
 
-  // Global keyboard shortcuts
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent): void {
       const meta = e.metaKey || e.ctrlKey
       if (meta && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
       if (meta && e.key === 'z' && e.shiftKey)  { e.preventDefault(); redo() }
       if (meta && e.key === ',')                 { e.preventDefault(); setSettingsOpen(true) }
+      if (meta && e.key === 's' && !e.shiftKey) { e.preventDefault(); save() }
+      if (meta && e.key === 's' && e.shiftKey)  { e.preventDefault(); saveAs() }
+      if (meta && e.key === 'o')                 { e.preventDefault(); open() }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [undo, redo])
+  }, [undo, redo, save, saveAs, open])
 
   return (
     <div className="flex flex-col h-full bg-app-bg text-txt-primary">
@@ -42,7 +45,11 @@ export default function App(): React.ReactElement {
         <ChatPanel />
       </div>
 
-      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} onSaved={() => showToast('Settings saved')} />
+      <Settings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSaved={() => showToast('Settings saved')}
+      />
       <Toast message={toastMessage} onDismiss={dismissToast} />
     </div>
   )
