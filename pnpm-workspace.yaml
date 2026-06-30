@@ -1,0 +1,8 @@
+allowBuilds:
+  canvas: true
+  electron: true
+  esbuild: true
+onlyBuiltDependencies:
+  - canvas
+  - electron
+  - esbuild
