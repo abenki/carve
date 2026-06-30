@@ -68,6 +68,7 @@ export const useSlidesStore = create<SlidesState>()(
     updateProjectName: (name) =>
       set((s) => { s.project.name = name }),
 
+    // Must be called BEFORE entering a set() callback to avoid nested-set issues
     pushHistory: () =>
       set((s) => {
         s.undoStack.push({
@@ -78,76 +79,85 @@ export const useSlidesStore = create<SlidesState>()(
         s.redoStack = []
       }),
 
-    addSlide: (afterIndex, partial) =>
+    addSlide: (afterIndex, partial) => {
+      get().pushHistory()
       set((s) => {
-        get().pushHistory()
         const slide: Slide = { ...blankSlide(), ...partial }
         s.project.slides.splice(afterIndex + 1, 0, slide)
         s.project.updatedAt = new Date().toISOString()
-      }),
+      })
+    },
 
-    deleteSlide: (index) =>
+    deleteSlide: (index) => {
+      if (get().project.slides.length <= 1) return
+      get().pushHistory()
       set((s) => {
-        if (s.project.slides.length <= 1) return
-        get().pushHistory()
         s.project.slides.splice(index, 1)
         s.project.updatedAt = new Date().toISOString()
-      }),
+      })
+    },
 
-    duplicateSlide: (index) =>
+    duplicateSlide: (index) => {
+      get().pushHistory()
       set((s) => {
-        get().pushHistory()
         const copy: Slide = JSON.parse(JSON.stringify(s.project.slides[index]))
         copy.id = uuid()
         copy.elements = copy.elements.map((el) => ({ ...el, id: uuid() }))
         s.project.slides.splice(index + 1, 0, copy)
         s.project.updatedAt = new Date().toISOString()
-      }),
+      })
+    },
 
-    reorderSlides: (fromIndex, toIndex) =>
+    reorderSlides: (fromIndex, toIndex) => {
+      get().pushHistory()
       set((s) => {
-        get().pushHistory()
         const [slide] = s.project.slides.splice(fromIndex, 1)
         s.project.slides.splice(toIndex, 0, slide)
         s.project.updatedAt = new Date().toISOString()
-      }),
+      })
+    },
 
-    setSlideBackground: (index, background) =>
+    setSlideBackground: (index, background) => {
+      get().pushHistory()
       set((s) => {
-        get().pushHistory()
         s.project.slides[index].background = background
         s.project.updatedAt = new Date().toISOString()
-      }),
+      })
+    },
 
-    addElement: (slideIndex, element) =>
+    addElement: (slideIndex, element) => {
+      get().pushHistory()
       set((s) => {
-        get().pushHistory()
         s.project.slides[slideIndex].elements.push({ ...element, id: uuid() })
         s.project.updatedAt = new Date().toISOString()
-      }),
+      })
+    },
 
-    updateElement: (slideIndex, elementId, changes) =>
+    updateElement: (slideIndex, elementId, changes) => {
+      get().pushHistory()
       set((s) => {
-        get().pushHistory()
         const el = s.project.slides[slideIndex].elements.find((e) => e.id === elementId)
         if (el) Object.assign(el, changes)
         s.project.updatedAt = new Date().toISOString()
-      }),
+      })
+    },
 
-    deleteElement: (slideIndex, elementId) =>
+    deleteElement: (slideIndex, elementId) => {
+      get().pushHistory()
       set((s) => {
-        get().pushHistory()
         const slide = s.project.slides[slideIndex]
         slide.elements = slide.elements.filter((e) => e.id !== elementId)
         s.project.updatedAt = new Date().toISOString()
-      }),
+      })
+    },
 
-    applyTheme: (theme) =>
+    applyTheme: (theme) => {
+      get().pushHistory()
       set((s) => {
-        get().pushHistory()
         Object.assign(s.project.theme, theme)
         s.project.updatedAt = new Date().toISOString()
-      }),
+      })
+    },
 
     undo: () =>
       set((s) => {

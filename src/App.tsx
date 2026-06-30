@@ -4,11 +4,21 @@ import ThumbnailStrip from './components/Thumbnails/ThumbnailStrip'
 import SlideViewport from './components/SlideViewer/SlideViewport'
 import ChatPanel from './components/Chat/ChatPanel'
 import Settings from './components/Settings'
+import Toast from './components/Toast'
 import { useSlidesStore } from './store/slides'
+import { useSettingsStore } from './store/settings'
+import { useToast } from './hooks/useToast'
 
 export default function App(): React.ReactElement {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { undo, redo } = useSlidesStore()
+  const { loadFromElectron } = useSettingsStore()
+  const { message: toastMessage, show: showToast, dismiss: dismissToast } = useToast()
+
+  // Load settings from Electron on mount
+  useEffect(() => {
+    loadFromElectron()
+  }, [])
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -16,6 +26,7 @@ export default function App(): React.ReactElement {
       const meta = e.metaKey || e.ctrlKey
       if (meta && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
       if (meta && e.key === 'z' && e.shiftKey)  { e.preventDefault(); redo() }
+      if (meta && e.key === ',')                 { e.preventDefault(); setSettingsOpen(true) }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -31,7 +42,8 @@ export default function App(): React.ReactElement {
         <ChatPanel />
       </div>
 
-      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} onSaved={() => showToast('Settings saved')} />
+      <Toast message={toastMessage} onDismiss={dismissToast} />
     </div>
   )
 }
