@@ -1,6 +1,7 @@
 import React, { useRef } from 'react'
 import { useSlidesStore } from '@/store/slides'
 import { useUIStore } from '@/store/ui'
+import { useSettingsStore } from '@/store/settings'
 import SlideRenderer from './SlideRenderer'
 import AnnotationCanvas from '../AnnotationCanvas/AnnotationCanvas'
 import DrawToolbar from '../AnnotationCanvas/DrawToolbar'
@@ -8,6 +9,7 @@ import DrawToolbar from '../AnnotationCanvas/DrawToolbar'
 export default function SlideViewport(): React.ReactElement {
   const { project } = useSlidesStore()
   const { activeSlideIndex, drawMode, activeTool, setDrawMode, setActiveTool, setPendingAnnotation } = useUIStore()
+  const { settings } = useSettingsStore()
   const slideContainerRef = useRef<HTMLDivElement>(null)
   const slideRef = useRef<HTMLDivElement>(null)
 
@@ -23,7 +25,7 @@ export default function SlideViewport(): React.ReactElement {
         data-slide-container
         className="relative shadow-2xl"
         style={{
-          aspectRatio: '16 / 9',
+          aspectRatio: settings.slideSize === '4:3' ? '4 / 3' : '16 / 9',
           width: '100%',
           maxWidth: '900px',
         }}

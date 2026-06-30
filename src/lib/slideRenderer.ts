@@ -83,11 +83,16 @@ export function renderSlideToHtml(slide: Slide, _theme: Theme): string {
   `.trim()
 }
 
-export function renderProjectToExportHtml(project: Project): string {
+export function renderProjectToExportHtml(project: Project, slideSize: '16:9' | '4:3' = '16:9'): string {
+  // ratio helpers: how many vh = 100vw, and vice versa
+  const [ratioW, ratioH] = slideSize === '4:3' ? [4, 3] : [16, 9]
+  const wToH = (ratioH / ratioW * 100).toFixed(4)   // e.g. 56.25 for 16:9
+  const hToW = (ratioW / ratioH * 100).toFixed(4)   // e.g. 177.78 for 16:9
+
   const slides = project.slides
     .map((slide, i) => {
       const inner = renderSlideToHtml(slide, project.theme)
-      return `<div class="slide" id="slide-${i}" style="display:${i === 0 ? 'flex' : 'none'};width:100vw;height:100vh;align-items:center;justify-content:center;background:#000;">\n  <div style="position:relative;width:min(100vw,177.78vh);height:min(56.25vw,100vh);">${inner}</div>\n</div>`
+      return `<div class="slide" id="slide-${i}" style="display:${i === 0 ? 'flex' : 'none'};width:100vw;height:100vh;align-items:center;justify-content:center;background:#000;">\n  <div style="position:relative;width:min(100vw,${hToW}vh);height:min(${wToH}vw,100vh);">${inner}</div>\n</div>`
     })
     .join('\n')
 
@@ -116,6 +121,33 @@ ${slides}
   document.addEventListener('click', () => go(cur + 1));
 <\/script>
 </body>
+</html>`
+}
+
+// Print-optimised version: all slides visible, one per CSS page. Used for PDF export.
+export function renderProjectToPrintHtml(project: Project, slideSize: '16:9' | '4:3' = '16:9'): string {
+  const [w, h] = slideSize === '4:3' ? [1280, 960] : [1280, 720]
+
+  const slides = project.slides
+    .map((slide) => {
+      const inner = renderSlideToHtml(slide, project.theme)
+      return `<div class="slide">${inner}</div>`
+    })
+    .join('\n')
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+@page{size:${w}px ${h}px;margin:0}
+html,body{width:${w}px;background:#000}
+.slide{width:${w}px;height:${h}px;position:relative;overflow:hidden;page-break-after:always}
+.slide:last-child{page-break-after:avoid}
+</style>
+</head>
+<body>${slides}</body>
 </html>`
 }
 

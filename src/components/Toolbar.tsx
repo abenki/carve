@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Undo2, Redo2, FileDown, FolderOpen, Save, Settings } from 'lucide-react'
+import { Undo2, Redo2, FileDown, FolderOpen, Save, FilePlus, Settings, ChevronDown } from 'lucide-react'
 import { useSlidesStore } from '@/store/slides'
 import { useUIStore } from '@/store/ui'
 import { useFileActions } from '@/hooks/useFileActions'
@@ -11,7 +11,19 @@ interface Props {
 export default function Toolbar({ onSettingsOpen }: Props): React.ReactElement {
   const { project, updateProjectName, undo, redo, undoStack, redoStack } = useSlidesStore()
   const { isDirty, currentFilePath } = useUIStore()
-  const { save, open, exportHtml } = useFileActions()
+  const { newProject, save, open, exportHtml, exportPdf } = useFileActions()
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(project.name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -74,15 +86,43 @@ export default function Toolbar({ onSettingsOpen }: Props): React.ReactElement {
 
         <div className="w-px h-4 bg-app-border2 mx-1" />
 
+        <ToolbarButton onClick={newProject} title="New project (⌘N)">
+          <FilePlus size={14} />
+        </ToolbarButton>
         <ToolbarButton onClick={open} title="Open project (⌘O)">
           <FolderOpen size={14} />
         </ToolbarButton>
         <ToolbarButton onClick={save} title="Save project (⌘S)">
           <Save size={14} />
         </ToolbarButton>
-        <ToolbarButton onClick={exportHtml} title="Export as HTML">
-          <FileDown size={14} />
-        </ToolbarButton>
+
+        {/* Export dropdown */}
+        <div className="relative" ref={exportRef}>
+          <button
+            onClick={() => setExportOpen((v) => !v)}
+            title="Export"
+            className="flex items-center gap-0.5 p-1.5 rounded text-txt-secondary hover:text-txt-primary hover:bg-app-overlay transition-colors"
+          >
+            <FileDown size={14} />
+            <ChevronDown size={10} />
+          </button>
+          {exportOpen && (
+            <div className="absolute right-0 top-full mt-1 w-40 bg-app-surface border border-app-border2 rounded shadow-lg py-1 z-50">
+              <button
+                onClick={() => { exportHtml(); setExportOpen(false) }}
+                className="w-full text-left px-3 py-1.5 text-sm text-txt-secondary hover:text-txt-primary hover:bg-app-overlay transition-colors"
+              >
+                Export as HTML
+              </button>
+              <button
+                onClick={() => { exportPdf(); setExportOpen(false) }}
+                className="w-full text-left px-3 py-1.5 text-sm text-txt-secondary hover:text-txt-primary hover:bg-app-overlay transition-colors"
+              >
+                Export as PDF
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="w-px h-4 bg-app-border2 mx-1" />
 

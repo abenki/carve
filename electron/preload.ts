@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Export
   exportHtml: (html: string, name: string) => ipcRenderer.invoke('export:html', html, name),
-  exportPdf: (html: string, name: string) => ipcRenderer.invoke('export:pdf', html, name),
+  exportPdf: (html: string, name: string, slideSize: string) => ipcRenderer.invoke('export:pdf', html, name, slideSize),
 
   // Screenshot (for annotation → AI flow)
   captureSlide: (rect: { x: number; y: number; width: number; height: number }) =>

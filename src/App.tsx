@@ -14,9 +14,10 @@ import { useAutosave } from './hooks/useAutosave'
 export default function App(): React.ReactElement {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { undo, redo } = useSlidesStore()
-  const { toastMessage, showToast, dismissToast } = useUIStore()
+  const project = useSlidesStore((s) => s.project)
+  const { toastMessage, showToast, dismissToast, currentFilePath, isDirty } = useUIStore()
   const { loadFromElectron } = useSettingsStore()
-  const { save, saveAs, open } = useFileActions()
+  const { newProject, save, saveAs, open } = useFileActions()
 
   useAutosave()
 
@@ -24,19 +25,28 @@ export default function App(): React.ReactElement {
     loadFromElectron()
   }, [])
 
+  // Window title: "Project name [•] — Carve"
+  useEffect(() => {
+    const name = currentFilePath
+      ? currentFilePath.split(/[\\/]/).pop()?.replace(/\.carve$/, '') ?? project.name
+      : project.name
+    document.title = `${name}${isDirty && currentFilePath ? ' •' : ''} — Carve`
+  }, [project.name, currentFilePath, isDirty])
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent): void {
       const meta = e.metaKey || e.ctrlKey
       if (meta && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
       if (meta && e.key === 'z' && e.shiftKey)  { e.preventDefault(); redo() }
       if (meta && e.key === ',')                 { e.preventDefault(); setSettingsOpen(true) }
+      if (meta && e.key === 'n')                 { e.preventDefault(); newProject() }
       if (meta && e.key === 's' && !e.shiftKey) { e.preventDefault(); save() }
       if (meta && e.key === 's' && e.shiftKey)  { e.preventDefault(); saveAs() }
       if (meta && e.key === 'o')                 { e.preventDefault(); open() }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [undo, redo, save, saveAs, open])
+  }, [undo, redo, newProject, save, saveAs, open])
 
   return (
     <div className="flex flex-col h-full bg-app-bg text-txt-primary">

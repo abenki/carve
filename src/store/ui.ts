@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { ChatMessage } from '@/types'
 
-export type DrawTool = 'select' | 'pen' | 'rect' | 'arrow' | 'ellipse'
+export type DrawTool = 'pen' | 'rect' | 'arrow' | 'ellipse'
 
 interface UIState {
   activeSlideIndex: number

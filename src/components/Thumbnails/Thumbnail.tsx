@@ -1,6 +1,7 @@
-import React, { useRef } from 'react'
+import React from 'react'
 import type { Slide, Theme } from '@/types'
 import { renderSlideToHtml } from '@/lib/slideRenderer'
+import { useSettingsStore } from '@/store/settings'
 import { cn } from '@/lib/cn'
 
 interface Props {
@@ -13,7 +14,11 @@ interface Props {
 }
 
 export default function Thumbnail({ slide, theme, index, active, onClick, onContextMenu }: Props): React.ReactElement {
+  const { settings } = useSettingsStore()
   const html = renderSlideToHtml(slide, theme)
+  const aspectRatio = settings.slideSize === '4:3' ? '4/3' : '16/9'
+  // content canvas is always 900px wide; height depends on ratio
+  const contentH = settings.slideSize === '4:3' ? 675 : 506.25
 
   return (
     <button
@@ -30,12 +35,12 @@ export default function Thumbnail({ slide, theme, index, active, onClick, onCont
           'relative w-full overflow-hidden rounded border transition-colors',
           active ? 'border-accent' : 'border-app-border2 group-hover:border-app-border2'
         )}
-        style={{ aspectRatio: '16/9' }}
+        style={{ aspectRatio }}
       >
         {/* Scale down the 900px slide to fit the thumbnail */}
         <div
           className="absolute inset-0 origin-top-left pointer-events-none"
-          style={{ width: '900px', height: '506.25px', transform: `scale(${152 / 900})`, transformOrigin: 'top left' }}
+          style={{ width: '900px', height: `${contentH}px`, transform: `scale(${152 / 900})`, transformOrigin: 'top left' }}
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>

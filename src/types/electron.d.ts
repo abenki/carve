@@ -16,7 +16,7 @@ export interface ElectronAPI {
   getRecentProjects: () => Promise<{ name: string; path: string; updatedAt: string }[]>
 
   exportHtml: (html: string, name: string) => Promise<FileResult>
-  exportPdf: (html: string, name: string) => Promise<FileResult>
+  exportPdf: (html: string, name: string, slideSize: string) => Promise<FileResult>
 
   captureSlide: (rect: { x: number; y: number; width: number; height: number }) => Promise<string>
 

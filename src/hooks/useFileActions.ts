@@ -1,10 +1,20 @@
-import { useSlidesStore } from '@/store/slides'
+import { useSlidesStore, blankProject } from '@/store/slides'
 import { useUIStore } from '@/store/ui'
-import { renderProjectToExportHtml } from '@/lib/slideRenderer'
+import { useSettingsStore } from '@/store/settings'
+import { renderProjectToExportHtml, renderProjectToPrintHtml } from '@/lib/slideRenderer'
 
 export function useFileActions() {
   const { project, setProject } = useSlidesStore()
   const { currentFilePath, setCurrentFilePath, showToast, setActiveSlideIndex, setIsDirty } = useUIStore()
+  const { settings } = useSettingsStore()
+  const slideSize = settings.slideSize
+
+  async function newProject(): Promise<void> {
+    setProject(blankProject())
+    setCurrentFilePath(null)
+    setIsDirty(false)
+    setActiveSlideIndex(0)
+  }
 
   async function save(): Promise<void> {
     if (currentFilePath) {
@@ -37,12 +47,16 @@ export function useFileActions() {
   }
 
   async function exportHtml(): Promise<void> {
-    const html = renderProjectToExportHtml(project)
+    const html = renderProjectToExportHtml(project, slideSize)
     const result = await window.api.exportHtml(html, project.name)
-    if (!result.canceled) {
-      showToast('Exported as HTML')
-    }
+    if (!result.canceled) showToast('Exported as HTML')
   }
 
-  return { save, saveAs, open, exportHtml }
+  async function exportPdf(): Promise<void> {
+    const html = renderProjectToPrintHtml(project, slideSize)
+    const result = await window.api.exportPdf(html, project.name, slideSize)
+    if (!result.canceled) showToast('Exported as PDF')
+  }
+
+  return { newProject, save, saveAs, open, exportHtml, exportPdf }
 }
