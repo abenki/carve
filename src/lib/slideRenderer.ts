@@ -16,7 +16,6 @@ function elementToHtml(el: SlideElement): string {
       ...base,
       display: 'flex',
       alignItems: 'center',
-      overflow: 'hidden',
     }
     const innerStyle: Record<string, string> = {
       width: '100%',
@@ -92,7 +91,7 @@ export function renderProjectToExportHtml(project: Project, slideSize: '16:9' | 
   const slides = project.slides
     .map((slide, i) => {
       const inner = renderSlideToHtml(slide, project.theme)
-      return `<div class="slide" id="slide-${i}" style="display:${i === 0 ? 'flex' : 'none'};width:100vw;height:100vh;align-items:center;justify-content:center;background:#000;">\n  <div style="position:relative;width:min(100vw,${hToW}vh);height:min(${wToH}vw,100vh);">${inner}</div>\n</div>`
+      return `<div class="slide" id="slide-${i}" style="display:${i === 0 ? 'flex' : 'none'};width:100vw;height:100vh;align-items:center;justify-content:center;background:#000;view-transition-name:slide;">\n  <div style="position:relative;width:min(100vw,${hToW}vh);height:min(${wToH}vw,100vh);">${inner}</div>\n</div>`
     })
     .join('\n')
 
@@ -102,18 +101,47 @@ export function renderProjectToExportHtml(project: Project, slideSize: '16:9' | 
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${escapeHtml(project.name)}</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#000;overflow:hidden}</style>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;overflow:hidden}
+::view-transition-old(slide),::view-transition-new(slide){animation-duration:0.35s}
+</style>
 </head>
 <body>
 ${slides}
 <script>
-  let cur = 0;
-  const slides = document.querySelectorAll('.slide');
-  function go(n) {
-    slides[cur].style.display = 'none';
-    cur = Math.max(0, Math.min(n, slides.length - 1));
-    slides[cur].style.display = 'flex';
+  const slideEls = document.querySelectorAll('.slide');
+  const clamp = n => Math.max(0, Math.min(n, slideEls.length - 1));
+  const parseHash = () => {
+    const m = location.hash.match(/#\\/(\\d+)/);
+    return m ? clamp(parseInt(m[1], 10)) : 0;
+  };
+
+  let cur = parseHash();
+  slideEls.forEach((el, i) => { el.style.display = i === cur ? 'flex' : 'none'; });
+  if (!location.hash) history.replaceState(null, '', '#/' + cur);
+
+  function render(next) {
+    const apply = () => {
+      slideEls[cur].style.display = 'none';
+      cur = next;
+      slideEls[cur].style.display = 'flex';
+    };
+    if (document.startViewTransition) document.startViewTransition(apply);
+    else apply();
   }
+
+  function go(n) {
+    const next = clamp(n);
+    if (next === cur) return;
+    location.hash = '#/' + next;
+  }
+
+  window.addEventListener('hashchange', () => {
+    const next = parseHash();
+    if (next !== cur) render(next);
+  });
+
   document.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(cur + 1);
     if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(cur - 1);
