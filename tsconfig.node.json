@@ -1,0 +1,11 @@
+{
+  "extends": "@electron-vite/tsconfig/node.json",
+  "include": ["electron/**/*", "electron.vite.config.ts"],
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+}
