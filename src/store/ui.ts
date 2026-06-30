@@ -25,6 +25,9 @@ interface UIState {
   currentFilePath: string | null
   setCurrentFilePath: (path: string | null) => void
 
+  isDirty: boolean
+  setIsDirty: (dirty: boolean) => void
+
   toastMessage: string | null
   showToast: (msg: string) => void
   dismissToast: () => void
@@ -51,6 +54,9 @@ export const useUIStore = create<UIState>((set) => ({
 
   currentFilePath: null,
   setCurrentFilePath: (path) => set({ currentFilePath: path }),
+
+  isDirty: false,
+  setIsDirty: (dirty) => set({ isDirty: dirty }),
 
   toastMessage: null,
   showToast: (msg) => set({ toastMessage: msg }),

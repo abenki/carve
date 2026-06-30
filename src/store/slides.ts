@@ -184,3 +184,11 @@ export const useSlidesStore = create<SlidesState>()(
       }),
   }))
 )
+
+// Mark the project dirty whenever slides or theme change.
+// Imported lazily to avoid a circular dependency at module init time.
+useSlidesStore.subscribe((state, prev) => {
+  if (state.project.updatedAt !== prev.project.updatedAt) {
+    import('./ui').then(({ useUIStore }) => useUIStore.getState().setIsDirty(true))
+  }
+})

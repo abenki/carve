@@ -9,6 +9,7 @@ import { useSlidesStore } from './store/slides'
 import { useUIStore } from './store/ui'
 import { useSettingsStore } from './store/settings'
 import { useFileActions } from './hooks/useFileActions'
+import { useAutosave } from './hooks/useAutosave'
 
 export default function App(): React.ReactElement {
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -16,6 +17,8 @@ export default function App(): React.ReactElement {
   const { toastMessage, showToast, dismissToast } = useUIStore()
   const { loadFromElectron } = useSettingsStore()
   const { save, saveAs, open } = useFileActions()
+
+  useAutosave()
 
   useEffect(() => {
     loadFromElectron()

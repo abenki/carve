@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Undo2, Redo2, FileDown, FolderOpen, Save, Settings } from 'lucide-react'
 import { useSlidesStore } from '@/store/slides'
+import { useUIStore } from '@/store/ui'
 import { useFileActions } from '@/hooks/useFileActions'
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 
 export default function Toolbar({ onSettingsOpen }: Props): React.ReactElement {
   const { project, updateProjectName, undo, redo, undoStack, redoStack } = useSlidesStore()
+  const { isDirty, currentFilePath } = useUIStore()
   const { save, open, exportHtml } = useFileActions()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(project.name)
@@ -51,9 +53,12 @@ export default function Toolbar({ onSettingsOpen }: Props): React.ReactElement {
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="text-sm text-txt-secondary hover:text-txt-primary transition-colors px-2 py-0.5 rounded hover:bg-app-overlay"
+            className="text-sm text-txt-secondary hover:text-txt-primary transition-colors px-2 py-0.5 rounded hover:bg-app-overlay flex items-center gap-1.5"
           >
             {project.name}
+            {isDirty && currentFilePath && (
+              <span className="w-1.5 h-1.5 rounded-full bg-txt-muted shrink-0" title="Unsaved changes" />
+            )}
           </button>
         )}
       </div>
